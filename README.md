@@ -50,6 +50,19 @@ if (result.suspicious) {
 - Code execution risks
 - And 233 more...
 
+## Multi-Layer Runtime Defense
+
+**Layer 1 (Current):** Pattern-based detection with 238 embedded patterns
+- Fast local detection
+- Zero network overhead
+- Blocks known attack techniques
+
+**Layer 2 (In Development):** LLM Sentinel
+- Backend LLM verification for novel attacks
+- Context-aware analysis
+- Rate limiting to prevent cost spikes
+- Coming soon...
+
 ## License
 
 MIT
