@@ -1,0 +1,44 @@
+{
+  "name": "@sandrobuilds/tracerney",
+  "version": "0.9.13",
+  "description": "Transparent proxy runtime sentinel for prompt injection defense",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && node fix-esm.js",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "keywords": [
+    "prompt-injection",
+    "security",
+    "llm",
+    "sentinel",
+    "proxy",
+    "openrouter",
+    "ddd"
+  ],
+  "author": "Tracerny Security",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.13.6"
+  }
+}
