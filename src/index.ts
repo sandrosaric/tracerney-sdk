@@ -29,7 +29,7 @@ import { LLMSentinel } from "./infrastructure/sentinel/LLMSentinel";
 /**
  * Public configuration for Tracerney
  */
-export interface TracernyOptions {
+export interface TracerneyOptions {
   /**
    * List of tool names the LLM is allowed to call
    */
@@ -97,17 +97,17 @@ export interface TracernyOptions {
 }
 
 /**
- * Tracerny Facade
+ * Tracerney Facade
  * Main entry point for the SDK
  * Wires all dependencies: domain + application + infrastructure
  */
-export class Tracerny {
+export class Tracerney {
   private service: ShieldApplicationService;
 
   /**
    * Constructor: wires the full dependency graph
    */
-  constructor(options: TracernyOptions = {}) {
+  constructor(options: TracerneyOptions = {}) {
     // Step 0: Resolve endpoints from baseUrl if provided
     const resolvedOptions = this.resolveEndpoints(options);
 
@@ -160,7 +160,7 @@ export class Tracerny {
    * Resolves baseUrl into individual endpoint URLs
    * baseUrl takes precedence over individual endpoint options
    */
-  private resolveEndpoints(options: TracernyOptions): TracernyOptions {
+  private resolveEndpoints(options: TracerneyOptions): TracerneyOptions {
     if (options.baseUrl) {
       // Remove trailing slash for consistency
       const baseUrl = options.baseUrl.replace(/\/$/, '');
