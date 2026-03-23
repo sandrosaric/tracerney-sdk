@@ -42,7 +42,7 @@ export class HttpSignalSink implements ITelemetrySink {
     // Auto-flush if batch is full
     if (this.eventQueue.length >= this.batchSize) {
       this.flush().catch((err) => {
-        console.error("[Tracerny] Signal flush failed:", err);
+        console.error("[Tracerney] Signal flush failed:", err);
       });
     }
   }
@@ -54,7 +54,7 @@ export class HttpSignalSink implements ITelemetrySink {
     this.flushTimer = setInterval(() => {
       if (this.eventQueue.length > 0) {
         this.flush().catch((err) => {
-          console.error("[Tracerny] Periodic flush failed:", err);
+          console.error("[Tracerney] Periodic flush failed:", err);
         });
       }
     }, this.flushIntervalMs);
@@ -82,7 +82,7 @@ export class HttpSignalSink implements ITelemetrySink {
     if (typeof process !== "undefined" && process.nextTick) {
       process.nextTick(() => {
         this.send(eventsToSend).catch((err) => {
-          console.error("[Tracerny] Signal send failed:", err);
+          console.error("[Tracerney] Signal send failed:", err);
           // Restore events on failure
           this.eventQueue.unshift(...eventsToSend);
         });
@@ -91,7 +91,7 @@ export class HttpSignalSink implements ITelemetrySink {
       // Fallback for browser environments
       setTimeout(() => {
         this.send(eventsToSend).catch((err) => {
-          console.error("[Tracerny] Signal send failed:", err);
+          console.error("[Tracerney] Signal send failed:", err);
           this.eventQueue.unshift(...eventsToSend);
         });
       }, 0);
@@ -149,7 +149,7 @@ export class HttpSignalSink implements ITelemetrySink {
 
     if (this.eventQueue.length > 0) {
       console.warn(
-        `[Tracerny] Destroying HttpSignalSink with ${this.eventQueue.length} unsent events`
+        `[Tracerney] Destroying HttpSignalSink with ${this.eventQueue.length} unsent events`
       );
     }
   }

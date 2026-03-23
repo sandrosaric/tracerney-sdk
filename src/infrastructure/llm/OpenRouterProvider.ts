@@ -72,7 +72,7 @@ export class OpenRouterProvider implements ILLMProvider {
           Authorization: `Bearer ${this.config.apiKey}`,
           // OpenRouter required headers
           "HTTP-Referer": this.config.siteUrl ?? "",
-          "X-Title": this.config.siteTitle ?? "Tracerny",
+          "X-Title": this.config.siteTitle ?? "Tracerney",
         },
         body: JSON.stringify(body),
         signal: this.createAbortSignal(),

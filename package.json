@@ -20,7 +20,7 @@
     "openrouter",
     "ddd"
   ],
-  "author": "Tracerny Security",
+  "author": "Tracerney Prompt Injection Security",
   "license": "MIT",
   "files": [
     "dist",

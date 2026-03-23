@@ -101,7 +101,7 @@ export class ShieldApplicationService {
         })
         .catch((err) => {
           console.warn(
-            "[Tracerny] Remote pattern load failed, using bundled patterns:",
+            "[Tracerney] Remote pattern load failed, using bundled patterns:",
             err
           );
         });
@@ -157,7 +157,7 @@ export class ShieldApplicationService {
         );
         this.report(event);
         throw new ShieldBlockError(
-          `Tracerny Block: Unauthorized tool '${violation.toolName}'`,
+          `Tracerney Block: Unauthorized tool '${violation.toolName}'`,
           event
         );
       }
@@ -222,7 +222,7 @@ export class ShieldApplicationService {
               );
 
               this.report(event);
-              throw new ShieldBlockError("Tracerny Block: LLM Sentinel Confirmed", event);
+              throw new ShieldBlockError("Tracerney Block: LLM Sentinel Confirmed", event);
             }
 
             // Layer 2 passed - suspicious but allowed (e.g., educational context)

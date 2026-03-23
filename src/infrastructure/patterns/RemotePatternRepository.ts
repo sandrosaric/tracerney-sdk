@@ -119,7 +119,7 @@ export class RemotePatternRepository implements IPatternRepository {
     if (this.cachedPatterns && this.isStale()) {
       // Background refresh (non-blocking)
       this.fetchManifest().catch((err) => {
-        console.debug("[Tracerny] Background manifest update failed:", err);
+        console.debug("[Tracerney] Background manifest update failed:", err);
       });
       return this.cachedPatterns;
     }
@@ -132,7 +132,7 @@ export class RemotePatternRepository implements IPatternRepository {
       } catch (err) {
         // FIX GAP 1: explicit fallback to bundled repository on fetch failure
         console.warn(
-          "[Tracerny] Remote manifest fetch failed, falling back to bundled patterns:",
+          "[Tracerney] Remote manifest fetch failed, falling back to bundled patterns:",
           err
         );
         return this.config.fallbackRepository.getPatterns();

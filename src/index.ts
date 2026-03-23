@@ -1,12 +1,12 @@
 /**
- * Tracerny
+ * Tracerney
  * Transparent Proxy Runtime Sentinel for Prompt Injection Defense
  *
  * @example
  * ```typescript
- * import { Tracerny } from 'tracerney';
+ * import { Tracerney } from 'tracerney';
  *
- * const shield = new Tracerny({
+ * const shield = new Tracerney({
  *   allowedTools: ['search', 'calculator'],
  *   apiEndpoint: 'https://api.myapp.com/v1/signal',
  * });
@@ -27,7 +27,7 @@ import { HttpSignalSink } from "./infrastructure/telemetry/HttpSignalSink";
 import { LLMSentinel } from "./infrastructure/sentinel/LLMSentinel";
 
 /**
- * Public configuration for Tracerny
+ * Public configuration for Tracerney
  */
 export interface TracernyOptions {
   /**
@@ -36,7 +36,7 @@ export interface TracernyOptions {
   allowedTools?: string[];
 
   /**
-   * Base URL for your Tracerny backend (RECOMMENDED)
+   * Base URL for your Tracerney backend (RECOMMENDED)
    * Automatically constructs all required endpoints:
    * - Signal endpoint: {baseUrl}/api/v1/signal
    * - Verification endpoint: {baseUrl}/api/v1/verify-prompt
