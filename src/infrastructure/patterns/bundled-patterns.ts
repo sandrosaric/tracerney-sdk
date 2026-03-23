@@ -1,13 +1,13 @@
 /**
  * Bundled Patterns
- * Single source of truth for the 20 default injection detection patterns
+ * Single source of truth for the 258 injection detection patterns
  * Fixes Gap 4: prevents pattern duplication between vanguard.ts and manifest.bundled.ts
  */
 
 import { VanguardPattern } from "../../domain/detection/VanguardPattern";
 import { ThreatSeverity } from "../../domain/events/ThreatSeverity";
 
-export const BUNDLED_MANIFEST_VERSION = "0.3.0"; // 288 forensic patterns
+export const BUNDLED_MANIFEST_VERSION = "0.3.0"; // 258 embedded attack patterns
 
 export const BUNDLED_PATTERNS: readonly VanguardPattern[] = [
   // System Override Patterns

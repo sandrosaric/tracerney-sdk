@@ -25,7 +25,7 @@ if (result.suspicious) {
 
 ## What's Included
 
-- **238 embedded attack patterns** — covers known injection techniques
+- **258 embedded attack patterns** — covers known injection techniques
 - **Local detection** — <5ms latency, zero network calls
 - **Zero dependencies** — single npm package
 - **No data collection** — all detection happens in your process
@@ -52,7 +52,7 @@ if (result.suspicious) {
 
 ## Multi-Layer Runtime Defense
 
-**Layer 1 (Current):** Pattern-based detection with 238 embedded patterns
+**Layer 1 (Current):** Pattern-based detection with 258 embedded patterns
 - Fast local detection
 - Zero network overhead
 - Blocks known attack techniques
