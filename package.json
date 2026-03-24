@@ -1,7 +1,7 @@
 {
   "name": "@sandrobuilds/tracerney",
-  "version": "0.9.18",
-  "description": "Transparent proxy runtime sentinel for prompt injection defense.",
+  "version": "0.9.19",
+  "description": "Lightweight prompt injection detection for LLM applications. Runs 100% locally with 258 embedded attack patterns.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
