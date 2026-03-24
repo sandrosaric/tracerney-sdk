@@ -206,18 +206,20 @@ export class ShieldApplicationService {
           try {
             const sentinelResult = await this.sentinel.check(normalizedPrompt, rid);
 
-            if (sentinelResult.blocked) {
+            if (sentinelResult.action === "BLOCK") {
               // Only throw if Layer 2 confirms it's an attack
+              const blockLatencyMs = Date.now() - startTime;
               const event = createSecurityEvent(
                 rid,
                 SecurityEventType.PROMPT_INJECTION,
                 ThreatSeverity.HIGH,
-                `LLM Sentinel confirmed: ${sentinelResult.keywords.join(", ")} (confidence: ${sentinelResult.confidence})`,
+                `LLM Sentinel confirmed: ${sentinelResult.class} (confidence: ${sentinelResult.confidence}, fingerprint: ${sentinelResult.fingerprint})`,
                 {
                   patternName: threat.patternName,
                   requestSnippet: prompt.substring(0, 100),
-                  blockLatencyMs: (sentinelResult.latencyMs || 0) + (Date.now() - startTime),
-                  modelName: sentinelResult.llmModel,
+                  blockLatencyMs,
+                  threatClass: sentinelResult.class,
+                  fingerprint: sentinelResult.fingerprint,
                 }
               );
 

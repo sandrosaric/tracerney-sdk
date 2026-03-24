@@ -10,16 +10,15 @@ export interface ISentinel {
    * Check if a prompt contains a prompt injection attack
    * @param prompt The user input to evaluate
    * @param requestId Optional request ID for logging
-   * @returns Result with blocked flag, confidence score, and triggered keywords
+   * @returns Result with action, confidence score, threat class, and fingerprint
    */
   check(
     prompt: string,
     requestId?: string
   ): Promise<{
-    blocked: boolean;
+    action: "BLOCK" | "ALLOW";
     confidence: number; // 0.0 to 1.0
-    keywords: string[];
-    llmModel?: string;
-    latencyMs?: number;
+    class: string; // e.g., "jailbreak_llm_detected", "prompt_injection"
+    fingerprint: string; // Hash/identifier for the detected threat
   }>;
 }

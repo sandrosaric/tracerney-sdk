@@ -14,6 +14,8 @@ export interface SecurityEventMetadata {
   readonly blockLatencyMs?: number; // FIX GAP 2: now populated when events are created
   readonly modelName?: string;
   readonly provider?: string;
+  readonly threatClass?: string; // LLM Sentinel threat classification
+  readonly fingerprint?: string; // Unique threat identifier
 }
 
 export interface SecurityEvent {

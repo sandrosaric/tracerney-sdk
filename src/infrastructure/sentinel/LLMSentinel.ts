@@ -75,11 +75,10 @@ export class LLMSentinel implements ISentinel {
     prompt: string,
     requestId?: string
   ): Promise<{
-    blocked: boolean;
+    action: "BLOCK" | "ALLOW";
     confidence: number;
-    keywords: string[];
-    llmModel?: string;
-    latencyMs?: number;
+    class: string;
+    fingerprint: string;
   }> {
     const startTime = Date.now();
     const id = requestId || randomUUID();
@@ -96,33 +95,31 @@ export class LLMSentinel implements ISentinel {
       // Only call backend if keywords found OR 3+ fragments detected
       if (!shouldEscalate) {
         return {
-          blocked: false,
+          action: "ALLOW",
           confidence: 0.05,
-          keywords: [],
-          latencyMs: Date.now() - startTime,
+          class: "safe",
+          fingerprint: this.generateFingerprint(prompt, id),
         };
       }
 
       // Step 2: Send to backend for LLM verification
       const backendResult = await this.verifyWithBackend(prompt, triggeredKeywords, id);
-      const latencyMs = Date.now() - startTime;
 
       return {
-        blocked: backendResult.blocked,
+        action: backendResult.blocked ? "BLOCK" : "ALLOW",
         confidence: backendResult.confidence,
-        keywords: triggeredKeywords,
-        llmModel: backendResult.model,
-        latencyMs,
+        class: backendResult.threatClass,
+        fingerprint: backendResult.fingerprint,
       };
     } catch (error) {
       console.error('[Sentinel] Backend verification failed:', error);
 
       // On error, fail open (allow through) - don't block on infrastructure failure
       return {
-        blocked: false,
+        action: "ALLOW",
         confidence: 0.0,
-        keywords: this.findKeywords(prompt),
-        latencyMs: Date.now() - startTime,
+        class: "verification_error",
+        fingerprint: this.generateFingerprint(prompt, id),
       };
     }
   }
@@ -153,7 +150,13 @@ export class LLMSentinel implements ISentinel {
     prompt: string,
     keywords: string[],
     requestId: string
-  ): Promise<{ blocked: boolean; confidence: number; model: string }> {
+  ): Promise<{
+    blocked: boolean;
+    confidence: number;
+    model: string;
+    threatClass: string;
+    fingerprint: string;
+  }> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -179,15 +182,29 @@ export class LLMSentinel implements ISentinel {
     }
 
     const result = (await response.json()) as {
-      blocked?: boolean;
+      action?: "BLOCK" | "ALLOW";
       confidence?: number;
       model?: string;
+      class?: string;
+      fingerprint?: string;
     };
 
     return {
-      blocked: result.blocked ?? false,
+      blocked: result.action === "BLOCK",
       confidence: result.confidence ?? 0.5,
       model: result.model ?? 'unknown',
+      threatClass: result.class ?? 'unknown',
+      fingerprint: result.fingerprint ?? this.generateFingerprint(prompt, requestId),
     };
+  }
+
+  /**
+   * Generate a fingerprint hash for threat tracking
+   */
+  private generateFingerprint(prompt: string, requestId: string): string {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256');
+    hash.update(`${prompt}:${requestId}`);
+    return hash.digest('hex').substring(0, 6);
   }
 }
