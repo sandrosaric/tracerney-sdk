@@ -81,6 +81,109 @@ if (result.suspicious) {
 - **Structured threat metadata** — detailed fingerprints for audit trails and tracking
 - **Advanced rate limiting** — prevents cost spikes with intelligent throttling
 
+## Layer 2: LLM Sentinel Deep Dive
+
+Layer 2 adds advanced security with LLM Sentinel, an AI-powered verification system that analyzes LLM responses for injection patterns and validates output safety. Combines local pattern detection (Layer 1) with server-side verification for defense-in-depth protection.
+
+### How Layer 1 & Layer 2 Work Together
+
+| **Layer 1: Pattern Detection (Free SDK)** | **Layer 2: LLM Sentinel (Pro)** |
+|---|---|
+| Local pattern matching | Server-side verification |
+| 258 attack patterns | Output validation |
+| <5ms latency | JSON safety checks |
+| No data leaves device | Delimiter salting |
+| Zero network calls | Context-aware analysis |
+
+### Enabling Layer 2
+
+Initialize Tracerney with Layer 2 LLM Sentinel (Pro plan required):
+
+```typescript
+const tracer = new Tracerney({
+  apiKey: process.env.TRACERNEY_API_KEY,
+  sentinelEnabled: true,
+});
+```
+
+That's it! Layer 2 is automatically configured to use the hosted LLM Sentinel service. Your API key authenticates requests and verifies your Pro subscription.
+
+### Custom Layer 2 Configuration (Advanced)
+
+Want to self-host Layer 2 or use a custom implementation? Override the sentinel endpoint:
+
+```typescript
+const tracer = new Tracerney({
+  apiKey: process.env.TRACERNEY_API_KEY,
+  sentinelEnabled: true,
+  baseUrl: process.env.TRACERNEY_BASE_URL, // e.g., http://localhost:3000 or https://myapp.com
+  sentinelEndpoint: process.env.TRACERNEY_SENTINEL_ENDPOINT, // e.g., /api/v1/verify-prompt
+});
+```
+
+**Self-hosting Layer 2?** You can build your own verification endpoint using the same pattern as our hosted service. Contact support for self-hosting guidance.
+
+### Scanning with Layer 2
+
+With Layer 2 enabled, `scanPrompt` validates both input and LLM responses. Handle errors appropriately:
+
+```typescript
+try {
+  // Scan input (Layer 1 + Layer 2)
+  const result = await tracer.scanPrompt(userInput);
+  // If we get here, input is safe. Call LLM
+  const llmResponse = await llm.chat(userInput);
+  // Verify LLM output wasn't compromised
+  const outputCheck = await tracer.verifyOutput(llmResponse);
+  return llmResponse;
+} catch (err) {
+  if (err instanceof ShieldBlockError) {
+    return NextResponse.json(
+      { error: "Input content is flagged as suspicious" },
+      { status: 400 }
+    );
+  }
+  throw err;
+}
+```
+
+### API Response Format
+
+The verify-prompt endpoint returns structured responses. Success (HTTP 200) includes classification, confidence, and fingerprint. Errors include specific error codes and messages.
+
+#### ✅ Content is Safe (HTTP 200)
+```json
+{
+  "action": "ALLOW",
+  "confidence": 0.15,
+  "class": "safe_content",
+  "fingerprint": "a3f7k2"
+}
+```
+
+#### 🔴 Content is Blocked (HTTP 200)
+```json
+{
+  "action": "BLOCK",
+  "confidence": 0.99,
+  "class": "jailbreak_semantic_pattern",
+  "fingerprint": "c1p5n3"
+}
+```
+
+#### ⚠️ Quota Exceeded (HTTP 402)
+```json
+{
+  "blocked": true,
+  "reason": "scan_limit_exceeded",
+  "scansUsed": 50,
+  "limit": 50,
+  "message": "Free plan limit reached (50/month)..."
+}
+```
+
+---
+
 ## Pricing & Usage
 
 - **Free Tier:** 50 scans/month with Layer 1 pattern detection
