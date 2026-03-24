@@ -159,23 +159,22 @@ export class Tracerney {
   /**
    * Resolves baseUrl into individual endpoint URLs
    * baseUrl takes precedence over individual endpoint options
+   * Defaults to tracerney.com if no baseUrl or endpoints provided
    */
   private resolveEndpoints(options: TracerneyOptions): TracerneyOptions {
-    if (options.baseUrl) {
-      // Remove trailing slash for consistency
-      const baseUrl = options.baseUrl.replace(/\/$/, '');
+    // Determine which baseUrl to use
+    const baseUrl = options.baseUrl || 'https://tracerney.com';
 
-      return {
-        ...options,
-        apiEndpoint: `${baseUrl}/api/v1/signal`,
-        sentinelEndpoint: `${baseUrl}/api/v1/verify-prompt`,
-        shadowLogEndpoint: `${baseUrl}/api/v1/shadow-log`,
-        manifestUrl: `${baseUrl}/api/v1/definitions`,
-      };
-    }
+    // Remove trailing slash for consistency
+    const normalizedUrl = baseUrl.replace(/\/$/, '');
 
-    // No baseUrl, use individual options as-is
-    return options;
+    return {
+      ...options,
+      apiEndpoint: `${normalizedUrl}/api/v1/signal`,
+      sentinelEndpoint: `${normalizedUrl}/api/v1/verify-prompt`,
+      shadowLogEndpoint: `${normalizedUrl}/api/v1/shadow-log`,
+      manifestUrl: `${normalizedUrl}/api/v1/definitions`,
+    };
   }
 
   /**
