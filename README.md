@@ -2,6 +2,8 @@
 
 Lightweight prompt injection detection for LLM applications. Runs 100% locally with zero data leaving your server.
 
+> 🚀 **Explore the full platform at [tracerney.com](https://www.tracerney.com)** — includes dashboard, analytics, API management, and team collaboration tools.
+
 ## Install
 
 ```bash
@@ -72,16 +74,34 @@ if (result.suspicious) {
 - Detects: instruction overrides, role-play jailbreaks, context confusion, code execution risks, data extraction attempts, and more
 
 **Layer 2:** LLM Sentinel (Pro - $9/month)
-- AI-powered response verification system
-- Analyzes LLM responses for injection patterns
-- Validates output safety with context-aware scanning
-- Delimiter salting for enhanced protection
-- Returns structured threat metadata (class, fingerprint, confidence)
+- **AI-powered response verification** — LLM-based analysis for novel attack patterns
+- **Context-aware scanning** — understands your application's specific security policies
+- **Delimiter salting** — prevents prompt injection through response boundaries
+- **Zero prompt storage** — responses are analyzed in-memory, never saved or logged
+- **Structured threat metadata** — detailed fingerprints for audit trails and tracking
+- **Advanced rate limiting** — prevents cost spikes with intelligent throttling
 
-## Pricing
+## Pricing & Usage
 
 - **Free Tier:** 50 scans/month with Layer 1 pattern detection
-- **Pro Tier:** 2,500 scans/month with Layer 1 + Layer 2 LLM verification
+- **Pro Tier:** 2,500 scans/month with Layer 1 + Layer 2 LLM verification ($9/month)
+
+---
+
+## Ready for Advanced Protection?
+
+Layer 2 (LLM Sentinel) adds AI-powered verification with **context-aware** threat detection and **zero prompt storage** — all responses are analyzed in-memory and immediately discarded.
+
+**[Start Your Free Trial or Upgrade to Pro](https://www.tracerney.com/docs)** at tracerney.com
+
+Includes:
+- Dashboard with threat analytics
+- API key management
+- Team collaboration features
+- Detailed threat fingerprints for compliance
+- Priority support for Pro members
+
+---
 
 ## License
 
