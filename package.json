@@ -1,7 +1,7 @@
 {
   "name": "@sandrobuilds/tracerney",
   "version": "0.9.18",
-  "description": "Transparent proxy runtime sentinel for prompt injection defense",
+  "description": "Transparent proxy runtime sentinel for prompt injection defense.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,6 @@
 # Tracerney
 
-Lightweight prompt injection detection for LLM applications. Runs 100% locally.
+Lightweight prompt injection detection for LLM applications. Runs 100% locally with zero data leaving your server.
 
 ## Install
 
@@ -25,10 +25,10 @@ if (result.suspicious) {
 
 ## What's Included
 
-- **259 embedded attack patterns** — covers known injection techniques
-- **Local detection** — <5ms latency, zero network calls
+- **258 embedded attack patterns** — real-world injection techniques detected in real-time
+- **Local detection** — <5ms latency per prompt, zero network overhead
 - **Zero dependencies** — single npm package
-- **No data collection** — all detection happens in your process
+- **Privacy-first** — no data leaves your server, 100% local processing
 
 ## Result Object
 
@@ -64,18 +64,24 @@ if (result.suspicious) {
 
 ## Multi-Layer Runtime Defense
 
-**Layer 1:** Pattern-based detection with 259 embedded patterns
-- Fast local detection (<5ms)
+**Layer 1:** Pattern Matching (Always Free)
+- 258 real-world attack patterns in real-time
+- <5ms detection on modern hardware
 - Zero network overhead
-- Blocks known attack techniques
-- Marks suspicious prompts
+- Local processing only
+- Detects: instruction overrides, role-play jailbreaks, context confusion, code execution risks, data extraction attempts, and more
 
-**Layer 2:** LLM Sentinel (Backend Verification)
-- Backend LLM verification for novel attacks
-- Context-aware analysis via OpenRouter
+**Layer 2:** LLM Sentinel (Pro - $9/month)
+- AI-powered response verification system
+- Analyzes LLM responses for injection patterns
+- Validates output safety with context-aware scanning
+- Delimiter salting for enhanced protection
 - Returns structured threat metadata (class, fingerprint, confidence)
-- Rate limiting to prevent cost spikes
-- Only escalates suspicious Layer 1 matches
+
+## Pricing
+
+- **Free Tier:** 50 scans/month with Layer 1 pattern detection
+- **Pro Tier:** 2,500 scans/month with Layer 1 + Layer 2 LLM verification
 
 ## License
 
