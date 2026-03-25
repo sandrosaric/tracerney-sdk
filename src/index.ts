@@ -163,7 +163,7 @@ export class Tracerney {
    */
   private resolveEndpoints(options: TracerneyOptions): TracerneyOptions {
     // Determine which baseUrl to use
-    const baseUrl = options.baseUrl || 'https://tracerney.com';
+    const baseUrl = options.baseUrl || 'https://tracerney-llm-senteniel.vercel.app';
 
     // Remove trailing slash for consistency
     const normalizedUrl = baseUrl.replace(/\/$/, '');
