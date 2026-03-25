@@ -1,6 +1,6 @@
 {
   "name": "@sandrobuilds/tracerney",
-  "version": "0.9.21",
+  "version": "0.9.22",
   "description": "Lightweight prompt injection detection with Layer 1 (258 patterns) + Layer 2 (AI verification). Runs locally with zero data storage. Upgrade to Pro for context-aware threat analysis at tracerney.com",
   "type": "module",
   "main": "dist/index.js",
