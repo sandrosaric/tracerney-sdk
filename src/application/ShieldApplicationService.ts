@@ -262,6 +262,27 @@ export class ShieldApplicationService {
     try {
       const normalizedPrompt = normalizePrompt(prompt);
 
+      // ── Egress check (runs first, before injection patterns) ──────────────
+      // Scans for PII, secrets, and active exfiltration patterns in the prompt.
+      // SUSPICIOUS_EGRESS → throw immediately. No Layer 2, no second opinion.
+      const egressTrace = this.deterministicFilter.validate(normalizedPrompt);
+      if (egressTrace.isSuspicious && egressTrace.label === "SUSPICIOUS_EGRESS") {
+        const blockLatencyMs = Date.now() - startTime;
+        const event = createSecurityEvent(
+          rid,
+          SecurityEventType.SUSPICIOUS_EGRESS,
+          ThreatSeverity.CRITICAL,
+          `Egress attack in prompt: ${egressTrace.reason}`,
+          {
+            patternName: egressTrace.findings[0]?.patternName,
+            requestSnippet: prompt.substring(0, 100),
+            blockLatencyMs,
+          }
+        );
+        this.report(event);
+        throw new ShieldBlockError("Tracerney Block: Suspicious Egress in Prompt", event);
+      }
+
       // Layer 1: deterministic regex scan
       const threat = this.patternMatcher.match(normalizedPrompt);
 
