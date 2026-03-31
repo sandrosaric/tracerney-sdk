@@ -42,11 +42,14 @@ export interface WrapOptions {
 }
 
 export interface ScanResult {
-  suspicious: boolean;     // Layer 1 detected pattern match
-  patternName?: string;    // Which pattern was triggered
-  severity?: string;       // Threat severity
-  blocked: boolean;        // true if either layer blocked
-  blockedBy?: "layer1" | "layer2"; // Which layer made the final call
+  suspicious: boolean;       // true if any pattern matched
+  patternName?: string;      // Which pattern was triggered
+  severity?: string;         // Threat severity
+  blocked: boolean;          // true if either layer blocked
+  blockedBy?: "layer1" | "layer2";
+  /** Egress/PII label when DeterministicFilter fired — developer decides the penalty */
+  label?: string;            // e.g. "SUSPICIOUS_EGRESS" | "SUSPICIOUS_SECRET" | "SUSPICIOUS_PII"
+  reason?: string;           // e.g. "Detected 1 finding(s): Markdown Image with URL Query Params"
 }
 
 export type { SuspiciousTrace };
@@ -262,17 +265,17 @@ export class ShieldApplicationService {
     try {
       const normalizedPrompt = normalizePrompt(prompt);
 
-      // ── Egress check (runs first, before injection patterns) ──────────────
-      // Scans for PII, secrets, and active exfiltration patterns in the prompt.
-      // SUSPICIOUS_EGRESS → throw immediately. No Layer 2, no second opinion.
+      // ── Egress / PII / Secret check (runs first) ─────────────────────────
+      // Scans for exfiltration patterns, secrets, and PII embedded in the prompt.
+      // The SDK marks it SUSPICIOUS and surfaces the label — developer owns the penalty.
       const egressTrace = this.deterministicFilter.validate(normalizedPrompt);
-      if (egressTrace.isSuspicious && egressTrace.label === "SUSPICIOUS_EGRESS") {
+      if (egressTrace.isSuspicious && egressTrace.label) {
         const blockLatencyMs = Date.now() - startTime;
         const event = createSecurityEvent(
           rid,
           SecurityEventType.SUSPICIOUS_EGRESS,
           ThreatSeverity.CRITICAL,
-          `Egress attack in prompt: ${egressTrace.reason}`,
+          `${egressTrace.label}: ${egressTrace.reason}`,
           {
             patternName: egressTrace.findings[0]?.patternName,
             requestSnippet: prompt.substring(0, 100),
@@ -280,7 +283,15 @@ export class ShieldApplicationService {
           }
         );
         this.report(event);
-        throw new ShieldBlockError("Tracerney Block: Suspicious Egress in Prompt", event);
+        // Return suspicious — do NOT throw. Developer decides: block, redact, or log.
+        return {
+          suspicious: true,
+          patternName: egressTrace.findings[0]?.patternName,
+          severity: "critical",
+          blocked: false,
+          label: egressTrace.label,
+          reason: egressTrace.reason,
+        };
       }
 
       // Layer 1: deterministic regex scan
