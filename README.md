@@ -81,6 +81,17 @@ if (result.suspicious) {
 - **Structured threat metadata** — detailed fingerprints for audit trails and tracking
 - **Advanced rate limiting** — prevents cost spikes with intelligent throttling
 
+### Layer 1 Forensic Routing
+
+Layer 1 is the Executioner for binary violations. It stops immediately — no tokens wasted, no second opinion needed. Layer 2 is only called when Layer 1 is inconclusive.
+
+| Event | Action | Why |
+|---|---|---|
+| API Key / SSH Key | **Layer 1 stops immediately** | Binary. Zero legitimate export use-case. |
+| Email / Phone / CC / SSN | **Layer 1 stops immediately** | Clear PII violation. No reasoning required. |
+| Unauthorized Domain | **Layer 1 stops immediately** | Network boundary violation. Deterministic. |
+| Complex Encoding / Obfuscation | **Escalated to Layer 2** | Probabilistic. Needs a brain to verify. |
+
 ## Layer 2: LLM Sentinel Deep Dive
 
 Layer 2 adds advanced security with LLM Sentinel, an AI-powered verification system that analyzes LLM responses for injection patterns and validates output safety. Combines local pattern detection (Layer 1) with server-side verification for defense-in-depth protection.

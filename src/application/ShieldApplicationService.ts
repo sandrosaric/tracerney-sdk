@@ -42,10 +42,11 @@ export interface WrapOptions {
 }
 
 export interface ScanResult {
-  suspicious: boolean; // Layer 1 detected pattern match
-  patternName?: string; // Which pattern was triggered
-  severity?: string; // Threat severity
-  blocked: boolean; // Only true if Layer 2 confirmed attack
+  suspicious: boolean;     // Layer 1 detected pattern match
+  patternName?: string;    // Which pattern was triggered
+  severity?: string;       // Threat severity
+  blocked: boolean;        // true if either layer blocked
+  blockedBy?: "layer1" | "layer2"; // Which layer made the final call
 }
 
 export type { SuspiciousTrace };
@@ -236,80 +237,96 @@ export class ShieldApplicationService {
 
   /**
    * Scan a raw prompt pre-LLM for inline use.
-   * Returns result object with suspicious flag and blocking decision.
-   * Only throws if Layer 2 (LLM Sentinel) confirms attack.
    *
-   * Hardened Middleware:
-   * - Layer 1 (Regex): Fast, pattern-based detection (marks suspicious, doesn't block)
-   * - Layer 2 (LLM Sentinel): Verifies suspicious prompts (only this blocks)
-   * - Jitter: Add random delay to obfuscate timing
+   * Forensic routing:
+   *
+   *   Layer 1 — The Executioner (CRITICAL / HIGH severity)
+   *     Binary violations: API keys, SSH keys, PII, unauthorized domains.
+   *     There is no context that makes exporting a raw AWS key acceptable.
+   *     Stop immediately. Do not waste tokens on Layer 2.
+   *     Throws ShieldBlockError instantly.
+   *
+   *   Layer 2 — The Jury (MEDIUM / LOW severity)
+   *     Inconclusive threats: complex encoding, obfuscated payloads, ambiguous tone.
+   *     Probabilistic — needs a reasoning model to verify.
+   *     Passed to LLM Sentinel only when Layer 1 is inconclusive.
    */
   async scanPrompt(prompt: string, requestId?: string): Promise<ScanResult> {
     if (!prompt) {
-      return { suspicious: false, blocked: false }; // Empty prompt is clean
+      return { suspicious: false, blocked: false };
     }
 
     const rid = requestId ?? this.generateRequestId();
     const startTime = Date.now();
 
     try {
-      // Normalize prompt to prevent Unicode/whitespace evasion
       const normalizedPrompt = normalizePrompt(prompt);
 
-      // Layer 1: Regex patterns (detection only, doesn't block)
+      // Layer 1: deterministic regex scan
       const threat = this.patternMatcher.match(normalizedPrompt);
-      const isSuspicious = !!threat;
 
-      // If Layer 1 detects something suspicious, check Layer 2
-      if (isSuspicious && threat) {
-        // Layer 2: LLM Sentinel makes final decision
-        if (this.sentinel) {
-          try {
-            const sentinelResult = await this.sentinel.check(normalizedPrompt, rid);
+      if (!threat) {
+        return { suspicious: false, blocked: false };
+      }
 
-            if (sentinelResult.action === "BLOCK") {
-              // Only throw if Layer 2 confirms it's an attack
-              const blockLatencyMs = Date.now() - startTime;
-              const event = createSecurityEvent(
-                rid,
-                SecurityEventType.PROMPT_INJECTION,
-                ThreatSeverity.HIGH,
-                `LLM Sentinel confirmed: ${sentinelResult.class} (confidence: ${sentinelResult.confidence}, fingerprint: ${sentinelResult.fingerprint})`,
-                {
-                  patternName: threat.patternName,
-                  requestSnippet: prompt.substring(0, 100),
-                  blockLatencyMs,
-                  threatClass: sentinelResult.class,
-                  fingerprint: sentinelResult.fingerprint,
-                }
-              );
+      const isBinary =
+        threat.severity === ThreatSeverity.CRITICAL ||
+        threat.severity === ThreatSeverity.HIGH;
 
-              this.report(event);
-              throw new ShieldBlockError("Tracerney Block: LLM Sentinel Confirmed", event);
-            }
-
-            // Layer 2 passed - suspicious but allowed (e.g., educational context)
-            return {
-              suspicious: true,
-              patternName: threat.patternName,
-              severity: threat.severity,
-              blocked: false,
-            };
-          } catch (error) {
-            // If sentinel throws (network error, etc), check if it's our block or a system error
-            if (error instanceof ShieldBlockError) {
-              throw error;
-            }
-            // Other errors: treat as suspicious but don't block (Layer 2 unavailable)
-            return {
-              suspicious: true,
-              patternName: threat.patternName,
-              severity: threat.severity,
-              blocked: false,
-            };
+      if (isBinary) {
+        // ── Layer 1: Executioner ─────────────────────────────────────────────
+        // Binary violation — stop immediately. No Layer 2, no second opinion.
+        const blockLatencyMs = Date.now() - startTime;
+        const event = createSecurityEvent(
+          rid,
+          SecurityEventType.PROMPT_INJECTION,
+          ThreatSeverity.CRITICAL,
+          `Layer 1 stopped: ${threat.patternName} [${threat.severity}]`,
+          {
+            patternName: threat.patternName,
+            requestSnippet: prompt.substring(0, 100),
+            blockLatencyMs,
           }
-        } else {
-          // No sentinel configured - just mark as suspicious
+        );
+        this.report(event);
+        throw new ShieldBlockError("Tracerney Block: Layer 1 Violation", event);
+      }
+
+      // ── Layer 2: Jury ──────────────────────────────────────────────────────
+      // Inconclusive threat (MEDIUM / LOW) — needs a reasoning model to judge.
+      if (this.sentinel) {
+        try {
+          const sentinelResult = await this.sentinel.check(normalizedPrompt, rid);
+
+          if (sentinelResult.action === "BLOCK") {
+            const blockLatencyMs = Date.now() - startTime;
+            const event = createSecurityEvent(
+              rid,
+              SecurityEventType.PROMPT_INJECTION,
+              ThreatSeverity.HIGH,
+              `Layer 2 confirmed: ${sentinelResult.class} (confidence: ${sentinelResult.confidence}, fingerprint: ${sentinelResult.fingerprint})`,
+              {
+                patternName: threat.patternName,
+                requestSnippet: prompt.substring(0, 100),
+                blockLatencyMs,
+                threatClass: sentinelResult.class,
+                fingerprint: sentinelResult.fingerprint,
+              }
+            );
+            this.report(event);
+            throw new ShieldBlockError("Tracerney Block: Layer 2 Confirmed", event);
+          }
+
+          // Layer 2 cleared it — suspicious but allowed
+          return {
+            suspicious: true,
+            patternName: threat.patternName,
+            severity: threat.severity,
+            blocked: false,
+          };
+        } catch (error) {
+          if (error instanceof ShieldBlockError) throw error;
+          // Layer 2 unavailable — mark suspicious but don't block
           return {
             suspicious: true,
             patternName: threat.patternName,
@@ -319,10 +336,14 @@ export class ShieldApplicationService {
         }
       }
 
-      // Layer 1 passed - prompt is clean
-      return { suspicious: false, blocked: false };
+      // No sentinel configured — surface the finding, let developer decide
+      return {
+        suspicious: true,
+        patternName: threat.patternName,
+        severity: threat.severity,
+        blocked: false,
+      };
     } finally {
-      // Jitter: Add random delay to obfuscate timing (always runs, masked from caller)
       await jitter();
     }
   }
