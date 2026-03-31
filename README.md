@@ -184,7 +184,7 @@ The verify-prompt endpoint returns structured responses. Success (HTTP 200) incl
 
 ---
 
-## Outbound Response Filtering: `validate()`
+## Egress Shield: Outbound Response Filtering (Add-on)
 
 Layer 1 also runs on every LLM **response** before it reaches your user — scanning for PII, secrets, and active exfiltration attempts embedded in agent output.
 
