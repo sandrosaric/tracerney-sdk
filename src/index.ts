@@ -18,6 +18,7 @@
  */
 
 import { ShieldApplicationService, type WrapOptions, type ServiceStatus, type ScanResult } from "./application";
+import { type SuspiciousTrace } from "./domain/pii/DeterministicFilter";
 import { ShieldBlockError } from "./application/ShieldBlockError";
 import { createToolPolicy } from "./domain/guard/ToolPolicy";
 import { type LLMResponse } from "./application/ports/ILLMProvider";
@@ -225,6 +226,42 @@ export class Tracerney {
   }
 
   /**
+   * Layer 1: Scan any string (agent output, tool result, raw text) for suspicious content.
+   *
+   * The SDK is a high-precision sensor — it never decides for you.
+   * Every match is returned as a SuspiciousTrace with a label and pre-computed redactedContent.
+   * You choose the reaction.
+   *
+   * **The Suspicious Manifest:**
+   * | Label                  | Trigger              | Recommended Action |
+   * |------------------------|----------------------|--------------------|
+   * | `SUSPICIOUS_PII`       | Email / Phone        | Usually Redact     |
+   * | `SUSPICIOUS_SECRET`    | API keys / SSH       | Usually Block      |
+   * | `SUSPICIOUS_EGRESS`    | External URL smuggle | Always Block       |
+   * | `SUSPICIOUS_ENCODING`  | Zero-width / BiDi    | Audit / Block      |
+   *
+   * @example
+   * ```typescript
+   * const trace = tracerney.validate(agentOutput);
+   *
+   * if (trace.isSuspicious) {
+   *   console.log(`Alert [${trace.label}]: ${trace.reason}`);
+   *
+   *   // Option A: Hard block
+   *   if (trace.label === 'SUSPICIOUS_EGRESS') {
+   *     throw new Error('Security Policy Violation');
+   *   }
+   *
+   *   // Option B: Surgical scrub
+   *   return trace.redactedContent;
+   * }
+   * ```
+   */
+  validate(text: string): SuspiciousTrace {
+    return this.service.validate(text);
+  }
+
+  /**
    * Update allowed tools at runtime
    *
    * @param tools - New list of allowed tool names
@@ -297,6 +334,12 @@ export { normalizePrompt, normalizePrompts, jitter } from "./application/utils";
 
 export { HttpSignalSink } from "./infrastructure/telemetry";
 export type { HttpSignalSinkConfig } from "./infrastructure/telemetry";
+
+// Layer 1 Deterministic Filter exports
+export { DeterministicFilter } from "./domain/pii/DeterministicFilter";
+export type { SuspiciousTrace, FilterOutcome, PIIFinding, SuspiciousLabel } from "./domain/pii/DeterministicFilter";
+export { PII_PATTERNS } from "./domain/pii/PIIPattern";
+export type { PIIPattern, PIICategory } from "./domain/pii/PIIPattern";
 
 // Layer 2 Sentinel exports
 export { LLMSentinel } from "./infrastructure/sentinel/LLMSentinel";

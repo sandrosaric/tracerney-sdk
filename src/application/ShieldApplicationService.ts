@@ -5,6 +5,7 @@
  */
 
 import { PatternMatcher } from "../domain/detection/PatternMatcher";
+import { DeterministicFilter, type SuspiciousTrace, type FilterOutcome } from "../domain/pii/DeterministicFilter";
 import { ToolGuard, type ToolCall } from "../domain/guard/ToolGuard";
 import { createToolPolicy, type ToolPolicy } from "../domain/guard/ToolPolicy";
 import {
@@ -47,6 +48,8 @@ export interface ScanResult {
   blocked: boolean; // Only true if Layer 2 confirmed attack
 }
 
+export type { SuspiciousTrace };
+
 export interface ServiceStatus {
   patternMatcher: {
     ready: boolean;
@@ -63,6 +66,7 @@ export interface ServiceStatus {
 
 export class ShieldApplicationService {
   private patternMatcher: PatternMatcher;
+  private readonly deterministicFilter: DeterministicFilter; // Layer 1: outbound PII filter
   private toolGuard: ToolGuard;
   private telemetrySink?: ITelemetrySink;
   private llmProvider?: ILLMProvider;
@@ -77,6 +81,9 @@ export class ShieldApplicationService {
     this.sentinel = config.sentinel; // Layer 2
     // this.shadowLogSink = config.shadowLogSink; // Disabled for now
     this.sdkVersion = config.sdkVersion ?? "0.2.0";
+
+    // Layer 1: deterministic outbound filter (singleton, stateless)
+    this.deterministicFilter = new DeterministicFilter();
 
     // Initialize patterns synchronously (bundled patterns always available)
     this.patternMatcher = new PatternMatcher(BUNDLED_PATTERNS);
@@ -132,10 +139,64 @@ export class ShieldApplicationService {
       }
 
       // Execute the LLM call
-      const response = await llmCall();
+      const rawResponse = await llmCall();
 
-      // FIX GAP 2: Compute and store latencyMs in event metadata
+      // ── Layer 1 (Outbound): Deterministic Filter ─────────────────────────
+      // Synchronous regex pass — <5ms, runs before the caller ever sees the text.
+      //
+      // The filter is a SENSOR, not a policy enforcer.
+      // It labels every finding with a SuspiciousLabel and pre-computes redactedContent.
+      // ShieldApplicationService acts on the label:
+      //
+      //   SUSPICIOUS_EGRESS   → throw (active exfiltration, caller gets nothing)
+      //   SUSPICIOUS_SECRET   → emit PII_LEAK alert, return redacted response
+      //   SUSPICIOUS_ENCODING → emit PII_LEAK alert, return redacted response
+      //   SUSPICIOUS_PII      → return redacted response silently
+      const { response, outcome: filterOutcome } =
+        this.deterministicFilter.filterResponse(rawResponse);
+
       const latencyMs = Date.now() - startTime;
+      const trace = filterOutcome.trace;
+
+      if (trace.isSuspicious && trace.label) {
+        if (trace.label === "SUSPICIOUS_EGRESS") {
+          // Active exfiltration — kill the process, caller gets nothing.
+          const event = createSecurityEvent(
+            requestId,
+            SecurityEventType.SUSPICIOUS_EGRESS,
+            ThreatSeverity.CRITICAL,
+            `Layer 1: ${trace.reason}`,
+            {
+              patternName: trace.findings[0]?.patternName,
+              blockLatencyMs: latencyMs,
+              modelName: options?.modelName,
+              provider: options?.provider,
+            },
+            startTime
+          );
+          this.report(event);
+          throw new ShieldBlockError("Tracerney Block: Suspicious Egress Detected", event);
+        }
+
+        if (trace.label === "SUSPICIOUS_SECRET" || trace.label === "SUSPICIOUS_ENCODING") {
+          // Accidental leak of high-value data — alert, but return the scrubbed response.
+          const event = createSecurityEvent(
+            requestId,
+            SecurityEventType.PII_LEAK,
+            ThreatSeverity.HIGH,
+            `Layer 1: ${trace.reason}`,
+            {
+              patternName: trace.findings[0]?.patternName,
+              blockLatencyMs: latencyMs,
+              modelName: options?.modelName,
+              provider: options?.provider,
+            },
+            startTime
+          );
+          this.report(event);
+        }
+        // SUSPICIOUS_PII (email/phone) → return scrubbed response silently, no event.
+      }
 
       // Validate tool calls against policy
       const toolCalls = response.choices?.[0]?.message?.tool_calls;
@@ -264,6 +325,14 @@ export class ShieldApplicationService {
       // Jitter: Add random delay to obfuscate timing (always runs, masked from caller)
       await jitter();
     }
+  }
+
+  /**
+   * Layer 1: Scan any string for suspicious content.
+   * Returns a SuspiciousTrace — the SDK never decides for you.
+   */
+  validate(text: string): SuspiciousTrace {
+    return this.deterministicFilter.validate(text);
   }
 
   /**
