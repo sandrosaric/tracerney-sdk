@@ -73,6 +73,24 @@ if (result.suspicious) {
 - Local processing only
 - Detects: instruction overrides, role-play jailbreaks, context confusion, code execution risks, data extraction attempts, and more
 
+Layer 1 also runs a deterministic egress and PII scan on every prompt **before** the injection patterns fire. If a match is found, it returns `suspicious: true` with a `label` and `reason` — the SDK never decides the penalty, the developer does.
+
+```typescript
+const result = await tracer.scanPrompt(input);
+
+if (result.suspicious) {
+  console.log(result.label);  // "SUSPICIOUS_EGRESS" | "SUSPICIOUS_SECRET" | "SUSPICIOUS_PII"
+  console.log(result.reason); // "Detected 1 finding(s): Markdown Image with URL Query Params"
+
+  // Your policy, your call:
+  if (result.label === 'SUSPICIOUS_EGRESS') {
+    return NextResponse.json({ error: 'Security violation' }, { status: 400 });
+  }
+}
+```
+
+Egress findings **never reach Layer 2** — they are binary and deterministic. A markdown image tag smuggling data in query params either exists or it doesn't. Layer 2 is reserved for probabilistic threats where a regex alone cannot make a confident call.
+
 **Layer 2:** LLM Sentinel (Pro - $9/month)
 - **AI-powered response verification** — LLM-based analysis for novel attack patterns
 - **Context-aware scanning** — understands your application's specific security policies
