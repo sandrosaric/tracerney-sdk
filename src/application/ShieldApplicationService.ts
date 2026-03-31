@@ -267,8 +267,9 @@ export class ShieldApplicationService {
 
       // ── Egress / PII / Secret check (runs first) ─────────────────────────
       // Scans for exfiltration patterns, secrets, and PII embedded in the prompt.
-      // The SDK marks it SUSPICIOUS and surfaces the label — developer owns the penalty.
-      const egressTrace = this.deterministicFilter.validate(normalizedPrompt);
+      // Must run on the RAW prompt — normalization strips @, :, /, = which destroys
+      // URL structure and breaks every egress/email/API-key regex.
+      const egressTrace = this.deterministicFilter.validate(prompt);
       if (egressTrace.isSuspicious && egressTrace.label) {
         const blockLatencyMs = Date.now() - startTime;
         const event = createSecurityEvent(
