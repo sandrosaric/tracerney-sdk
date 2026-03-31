@@ -2,7 +2,7 @@
 
 Lightweight prompt injection detection for LLM applications. Runs 100% locally with zero data leaving your server.
 
-> 🚀 **Explore the full platform at [tracerney.com](https://www.tracerney.com)** — includes dashboard, analytics, API management, and team collaboration tools.
+> 🚀 **Explore the full platform at [tracerney.com](https://www.tracerney.com)** — includes dashboard, analytics, and API management.
 
 ## Install
 
