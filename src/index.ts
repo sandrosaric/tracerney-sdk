@@ -37,6 +37,12 @@ export interface TracerneyOptions {
   allowedTools?: string[];
 
   /**
+   * Pattern tier: "free" (258 patterns) or "pro" (258 + 675 Garak patterns)
+   * Default: "free"
+   */
+  tier?: "free" | "pro";
+
+  /**
    * Base URL for your Tracerney backend (RECOMMENDED)
    * Automatically constructs all required endpoints:
    * - Signal endpoint: {baseUrl}/api/v1/signal
@@ -113,9 +119,11 @@ export class Tracerney {
     const resolvedOptions = this.resolveEndpoints(options);
 
     // Step 1: Build pattern repository
-    // Always use bundled patterns (288 forensic patterns)
+    // Bundled patterns: Free (258 core patterns) + Pro (675 Garak patterns)
     // No remote updates - bundled patterns are production-ready
-    const patternRepo = new BundledPatternRepository();
+    const patternRepo = new BundledPatternRepository({
+      tier: options.tier ?? "free",
+    });
 
     // Step 2: Build telemetry sink
     const telemetrySink =
@@ -327,7 +335,7 @@ export type {
 
 // Infrastructure adapter exports (for advanced/custom usage)
 export { BundledPatternRepository, RemotePatternRepository } from "./infrastructure/patterns";
-export type { RemotePatternRepositoryConfig } from "./infrastructure/patterns";
+export type { BundledRepositoryConfig, RemotePatternRepositoryConfig } from "./infrastructure/patterns";
 
 // Utility exports (for middleware & advanced use)
 export { normalizePrompt, normalizePrompts, jitter } from "./application/utils";

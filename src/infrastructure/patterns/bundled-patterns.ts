@@ -7,7 +7,7 @@
 import { VanguardPattern } from "../../domain/detection/VanguardPattern";
 import { ThreatSeverity } from "../../domain/events/ThreatSeverity";
 
-export const BUNDLED_MANIFEST_VERSION = "0.3.1"; // 259 embedded attack patterns
+export const BUNDLED_MANIFEST_VERSION = "0.3.2"; // 268 embedded attack patterns
 
 export const BUNDLED_PATTERNS: readonly VanguardPattern[] = [
   // System Override Patterns
@@ -2096,5 +2096,79 @@ export const BUNDLED_PATTERNS: readonly VanguardPattern[] = [
     severity: ThreatSeverity.CRITICAL,
     description: "Attempts to bypass constraints through hypothetical scenarios",
     category: "system_override",
+  },
+
+  // Beta test patterns (added for customer service/beta scenarios)
+  {
+    id: "pattern_260",
+    name: "Developer Mode Override",
+    pattern: /(?:you\s+are\s+now\s+in\s+)?developer\s+mode|development\s+mode|debug\s+mode/i,
+    severity: ThreatSeverity.HIGH,
+    description: "Attempts to switch system into developer/debug mode for unrestricted access",
+    category: "system_override",
+  },
+  {
+    id: "pattern_261",
+    name: "Authority Role Impersonation",
+    pattern: /(?:act\s+as|pretend\s+to\s+be|assume\s+the\s+role\s+of)\s+(?:the\s+)?(?:ceo|c\.e\.o|chief\s+executive|president|cfo|chief\s+financial|cto|chief\s+technology|manager|admin(?:istrator)?|boss|owner|director|professor|doctor|physician|lawyer|attorney)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to impersonate authority figures or privileged roles",
+    category: "privilege_escalation",
+  },
+  {
+    id: "pattern_262",
+    name: "Medical Impersonation",
+    pattern: /(?:you\s+are\s+now\s+a|become\s+a|act\s+as\s+a|pretend\s+(?:to\s+be|you\s+are)\s+a)\s+(?:doctor|physician|medical\s+professional|psychiatrist|therapist|nurse)(?:\s+|[.,]\s+|$)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to assume a medical professional role (doctor, physician, therapist, etc.)",
+    category: "privilege_escalation",
+  },
+  {
+    id: "pattern_263",
+    name: "Medical Safety Bypass",
+    pattern: /ignore\s+(?:medical\s+)?disclaimers?|medical\s+(?:warnings?|guidance)|(?:ignore|bypass)\s+(?:health|medical|safety)\s+(?:warnings?|requirements|guidelines|restrictions)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to bypass medical safety warnings or disclaimers",
+    category: "system_override",
+  },
+  {
+    id: "pattern_264",
+    name: "Financial System Impersonation",
+    pattern: /(?:act\s+as|pretend\s+to\s+be|assume\s+role\s+of)\s+(?:my\s+)?(?:bank|financial\s+institution|credit\s+card\s+company|investment\s+firm|insurance\s+company|broker)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to impersonate financial institutions or execute financial actions",
+    category: "privilege_escalation",
+  },
+  {
+    id: "pattern_265",
+    name: "Compliance Override",
+    pattern: /ignore\s+(?:compliance\s+)?requirements?|(?:ignore|bypass)\s+(?:legal|regulatory|compliance)\s+(?:requirements?|restrictions|guidelines|rules|obligations)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to bypass compliance, legal, or regulatory requirements",
+    category: "system_override",
+  },
+  {
+    id: "pattern_266",
+    name: "Generic Policy Bypass",
+    pattern: /ignore\s+(?:(?:all|your|my|the)\s+)?(?:\w+\s+)*(?:policies?|rules|guidelines|restrictions|safety\s+guidelines|content\s+policies?|community\s+standards)|bypass\s+(?:content\s+)?policies?/i,
+    severity: ThreatSeverity.HIGH,
+    description: "Attempts to ignore or bypass policies without specific context",
+    category: "system_override",
+  },
+  {
+    id: "pattern_267",
+    name: "Harmful Content Policy Bypass",
+    pattern: /(?:ignore|bypass)\s+(?:your\s+)?(?:content|harm|safety|ethical)\s+policies?.*(?:write|generate|create|help)\s+.*(?:harmful|abusive|dangerous|malicious|illegal|inappropriate)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Attempts to bypass safety policies for harmful content generation",
+    category: "system_override",
+  },
+  {
+    id: "pattern_268",
+    name: "Narrative-Based Data Exfiltration",
+    pattern: /(?:my\s+)?(?:grandmother|grandfather|mother|father|parent|aunt|uncle|friend|family\s+member|teacher|mentor|boss)\s+(?:used\s+to\s+)?(?:read|tell|share|give|show)\s+(?:me\s+)?(?:credit\s+card|password|secret|api\s+key|access\s+code|token|sensitive|private|confidential)/i,
+    severity: ThreatSeverity.CRITICAL,
+    description: "Narrative-based attempts to extract sensitive information through false stories",
+    category: "data_exfiltration",
   },
 ];

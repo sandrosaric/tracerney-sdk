@@ -15,9 +15,9 @@ npm install @sandrobuilds/tracerney
 ```typescript
 import { Tracerney } from '@sandrobuilds/tracerney';
 
-const tracer = new Tracerney();
+const shield = new Tracerney();
 
-const result = await tracer.scanPrompt(userInput);
+const result = await shield.scanPrompt(userInput);
 
 if (result.suspicious) {
   console.log('⚠️ Suspicious:', result.patternName);
@@ -27,10 +27,13 @@ if (result.suspicious) {
 
 ## What's Included
 
-- **258 embedded attack patterns** — real-world injection techniques detected in real-time
-- **Local detection** — <5ms latency per prompt, zero network overhead
-- **Zero dependencies** — single npm package
-- **Privacy-first** — no data leaves your server, 100% local processing
+- **933 attack patterns** — comprehensive prompt injection and jailbreak detection
+  - 259 core forensic patterns (system overrides, prompt leaks, code execution, etc.)
+  - 675 real-world variants from Garak security research
+- **Local detection** — <0.021ms latency per prompt, zero network overhead
+- **Zero dependencies** — single npm package, 100% local processing
+- **Privacy-first** — no data leaves your server, zero data storage
+- **Egress & PII scanning** — detects API keys, secrets, emails, and data exfiltration attempts
 
 ## Result Object
 
@@ -56,21 +59,32 @@ if (result.suspicious) {
 
 ## Detected Patterns
 
+### Core Patterns (259)
 - Instruction overrides ("ignore all instructions")
 - Role-play jailbreaks ("act as unrestricted AI")
 - Hypothetical constraint bypass ("what would you do without constraints?")
+- System prompt exfiltration
 - Context confusion attacks
 - Data extraction attempts
 - Code execution risks
-- And 254 more...
+- And 251 more forensic patterns...
+
+### Garak Research Patterns (675)
+- Advanced jailbreak variants from real-world research
+- DAN (Do Anything Now) attack variations
+- Sophisticated prompt injection techniques
+- Encoding-based evasion patterns
+- Character-based constraint bypass
+- Multi-turn attack sequences
+- And 670+ more variants from security research...
 
 ## Multi-Layer Runtime Defense
 
-**Layer 1:** Pattern Matching (Always Free)
-- 258 real-world attack patterns in real-time
-- <5ms detection on modern hardware
+**Layer 1:** Pattern Matching
+- **933 total patterns** — 259 core + 675 Garak research patterns
+- **<0.021ms detection** on modern hardware (238x faster than target)
 - Zero network overhead
-- Local processing only
+- 100% local processing
 - Detects: instruction overrides, role-play jailbreaks, context confusion, code execution risks, data extraction attempts, and more
 
 Layer 1 also runs a deterministic egress and PII scan on every prompt **before** the injection patterns fire. If a match is found, it returns `suspicious: true` with a `label` and `reason` — the SDK never decides the penalty, the developer does.
@@ -91,7 +105,19 @@ if (result.suspicious) {
 
 Egress findings **never reach Layer 2** — they are binary and deterministic. A markdown image tag smuggling data in query params either exists or it doesn't. Layer 2 is reserved for probabilistic threats where a regex alone cannot make a confident call.
 
-**Layer 2:** LLM Sentinel (Pro - $9/month)
+### Garak Attack Pattern Dataset
+
+Includes **675 patterns** from the Garak security research dataset, covering real-world prompt injection variants discovered through automated fuzzing and empirical testing.
+
+**Coverage includes:**
+- 648 real-world variants from in-the-wild attacks
+- 12 DAN (Do Anything Now) attack variations
+- 3 AutoDAN patterns
+- 12 advanced prompt injection techniques
+
+All patterns are deterministic regex matches — **no behavioral changes, sub-millisecond latency**. The SDK remains 100% local with zero data storage.
+
+**Layer 2:** LLM Sentinel (Optional)
 - **AI-powered response verification** — LLM-based analysis for novel attack patterns
 - **Context-aware scanning** — understands your application's specific security policies
 - **Delimiter salting** — prevents prompt injection through response boundaries
@@ -116,41 +142,41 @@ Layer 2 adds advanced security with LLM Sentinel, an AI-powered verification sys
 
 ### How Layer 1 & Layer 2 Work Together
 
-| **Layer 1: Pattern Detection (Free SDK)** | **Layer 2: LLM Sentinel (Pro)** |
+| **Layer 1: Pattern Detection** | **Layer 2: LLM Sentinel (Optional)** |
 |---|---|
-| Local pattern matching | Server-side verification |
-| 258 attack patterns | Output validation |
-| <5ms latency | JSON safety checks |
+| 933 patterns (local) | Server-side verification |
+| Pattern matching | Output validation |
+| <0.021ms latency | JSON safety checks |
 | No data leaves device | Delimiter salting |
 | Zero network calls | Context-aware analysis |
 
-### Enabling Layer 2
+### Enabling Layer 2 (Optional)
 
-Initialize Tracerney with Layer 2 LLM Sentinel (Pro plan required):
+Layer 2 is optional. Initialize with LLM Sentinel for additional AI-powered verification:
 
 ```typescript
-const tracer = new Tracerney({
+const shield = new Tracerney({
   apiKey: process.env.TRACERNEY_API_KEY,
   sentinelEnabled: true,
 });
 ```
 
-That's it! Layer 2 is automatically configured to use the hosted LLM Sentinel service. Your API key authenticates requests and verifies your Pro subscription.
+Layer 2 is automatically configured to use the hosted LLM Sentinel service.
 
-### Custom Layer 2 Configuration (Advanced)
+### Custom Layer 2 Configuration (Self-Hosted)
 
-Want to self-host Layer 2 or use a custom implementation? Override the sentinel endpoint:
+Want to self-host or use a custom backend? Override the sentinel endpoint:
 
 ```typescript
-const tracer = new Tracerney({
+const shield = new Tracerney({
   apiKey: process.env.TRACERNEY_API_KEY,
   sentinelEnabled: true,
-  baseUrl: process.env.TRACERNEY_BASE_URL, // e.g., http://localhost:3000 or https://myapp.com
+  baseUrl: process.env.TRACERNEY_BASE_URL, // e.g., http://localhost:3000
   sentinelEndpoint: process.env.TRACERNEY_SENTINEL_ENDPOINT, // e.g., /api/v1/verify-prompt
 });
 ```
 
-**Self-hosting Layer 2?** You can build your own verification endpoint using the same pattern as our hosted service. Contact support for self-hosting guidance.
+You can build your own verification endpoint using the same pattern as our hosted service.
 
 ### Scanning with Layer 2
 
@@ -271,36 +297,30 @@ sandro@example.com
 
 When multiple patterns fire, the highest-severity label wins — `SUSPICIOUS_EGRESS` always dominates.
 
-### The Suspicious Manifest
-
-| Trigger | Label | Recommended action |
-|---|---|---|
-| Email / Phone | `SUSPICIOUS_PII` | Usually Redact |
-| API Keys / SSH / CC / SSN | `SUSPICIOUS_SECRET` | Usually Block |
-| External URL smuggling | `SUSPICIOUS_EGRESS` | Always Block |
-| Zero-width / BiDi / Base64 | `SUSPICIOUS_ENCODING` | Audit / Block |
-
 ---
 
-## Pricing & Usage
+## Production Usage
 
-- **Free Tier:** 50 scans/month with Layer 1 pattern detection
-- **Pro Tier:** 2,500 scans/month with Layer 1 + Layer 2 LLM verification ($9/month)
+### Basic Setup (Layer 1 only)
+```typescript
+const shield = new Tracerney();
+```
 
----
+### Optimized for Production
+```typescript
+const shield = new Tracerney({
+  enableTelemetry: false,   // Disable if not using backend
+  sentinelEnabled: false    // Disable if not using Layer 2
+});
+```
 
-## Ready for Advanced Protection?
-
-Layer 2 (LLM Sentinel) adds AI-powered verification with **context-aware** threat detection and **zero prompt storage** — all responses are analyzed in-memory and immediately discarded.
-
-**[Start Your Free Trial or Upgrade to Pro](https://www.tracerney.com/docs)** at tracerney.com
-
-Includes:
-- Dashboard with threat analytics
-- API key management
-- Team collaboration features
-- Detailed threat fingerprints for compliance
-- Priority support for Pro members
+### With Layer 2 (Advanced)
+```typescript
+const shield = new Tracerney({
+  sentinelEnabled: true,
+  apiKey: process.env.TRACERNEY_API_KEY
+});
+```
 
 ---
 

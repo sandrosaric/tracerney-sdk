@@ -92,31 +92,29 @@ export class ShieldApplicationService {
     // Initialize patterns synchronously (bundled patterns always available)
     this.patternMatcher = new PatternMatcher(BUNDLED_PATTERNS);
 
-    // Load remote patterns in background if configured (zero-day updates)
-    this.updateRemotePatterns();
+    // Load patterns from repository (bundled or remote)
+    this.loadPatterns();
   }
 
   /**
-   * Update patterns from remote repository in background.
-   * Non-blocking; fails gracefully, falling back to bundled patterns.
+   * Load patterns from the configured repository.
+   * Supports both bundled (free/pro) and remote (zero-day updates) patterns.
+   * Non-blocking; fails gracefully, falling back to initial patterns.
    */
-  private updateRemotePatterns(): void {
-    // Only load remote if not using bundled repository
-    if (this.config.patternRepository instanceof BundledPatternRepository === false) {
-      this.config.patternRepository
-        .getPatterns()
-        .then((patterns) => {
-          if (patterns && patterns.length > 0) {
-            this.patternMatcher = new PatternMatcher(patterns);
-          }
-        })
-        .catch((err) => {
-          console.warn(
-            "[Tracerney] Remote pattern load failed, using bundled patterns:",
-            err
-          );
-        });
-    }
+  private loadPatterns(): void {
+    this.config.patternRepository
+      .getPatterns()
+      .then((patterns) => {
+        if (patterns && patterns.length > 0) {
+          this.patternMatcher = new PatternMatcher(patterns);
+        }
+      })
+      .catch((err) => {
+        console.warn(
+          "[Tracerney] Pattern load failed, using initial patterns:",
+          err
+        );
+      });
   }
 
   /**
