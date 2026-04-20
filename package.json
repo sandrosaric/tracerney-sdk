@@ -1,6 +1,6 @@
 {
   "name": "@sandrobuilds/tracerney",
-  "version": "0.9.33",
+  "version": "0.10.0",
   "description": "Lightweight prompt injection detection with 933 patterns (259 core + 675 Garak). Layer 1 pattern matching (<0.021ms) + optional Layer 2 (AI verification). Runs 100% locally with zero data storage.",
   "type": "module",
   "main": "dist/index.js",
